@@ -9,7 +9,7 @@ import torch.distributed as dist
 import cnn
 import os
 
-from arguments import tutorial_args
+from arguments import get_args, log_args, tutorial_args
 # from cnn.utils.log import log, configure_log
 # from cnn.utils.set_conf import set_conf
 # from cnn.models.create_model import create_model
