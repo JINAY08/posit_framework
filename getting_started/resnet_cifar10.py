@@ -4,7 +4,7 @@ import torchvision
 import torchvision.transforms as transforms
 import torch.nn as nn
 import torch.nn.functional as F
-from .bfp_ops import PositLinear, PositConv2d
+from .bfp_ops import PositLinear, PositConv2d, unpack_bfp_args
 import torch.optim as optim
 from tqdm import tqdm, trange
 
@@ -19,12 +19,12 @@ def prepare_data():
     trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                             download=True, transform=transform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=64,
-                                              shuffle=True, num_workers=24)
+                                              shuffle=True, num_workers=12)
 
     testset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                            download=True, transform=transform)
     testloader = torch.utils.data.DataLoader(testset, batch_size=32,
-                                             shuffle=False, num_workers=16)
+                                             shuffle=False, num_workers=12)
 
     classes = ('plane', 'car', 'bird', 'cat',
                'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
