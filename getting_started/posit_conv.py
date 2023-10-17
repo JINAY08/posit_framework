@@ -1,3 +1,5 @@
+
+
 import torch
 import torch.nn.functional as F
 from torch.optim import SGD
@@ -7,6 +9,26 @@ import itertools as it
 import logging
 import unittest
 
+def unpack_bfp_args(kwargs):
+    """
+    Set up the bfp arguments
+    """
+    bfp_args = {}
+    bfp_argn = [('num_format', 'fp32'),
+                ('rounding_mode', 'stoc'),
+                ('epsilon', 1e-8),
+                ('mant_bits', 0),
+                ('bfp_tile_size', 0),
+                ('weight_mant_bits', 0),
+                ('device', 'cpu')]
+
+    for arg, default in bfp_argn:
+        if arg in kwargs:
+            bfp_args[arg] = kwargs[arg]
+            del kwargs[arg]
+        else:
+            bfp_args[arg] = default
+    return bfp_args
 
 class PositConv2d(torch.nn.Conv2d):
     """
@@ -17,6 +39,7 @@ class PositConv2d(torch.nn.Conv2d):
 
         super().__init__(in_channels, out_channels, kernel_size, stride,
                          padding, dilation, groups, bias)
+        self.bfp_args = unpack_bfp_args(kwargs)
         self.num_format = self.bfp_args['num_format']
 
     def conditions_l1(self, xx):
@@ -87,15 +110,15 @@ class PositLinear(torch.nn.Linear):
     posit linear layer
     """
     def __init__(self, in_features, out_features, bias=True, **kwargs):
-        self.bfp_args = unpack_bfp_args(kwargs)
         super().__init__(in_features, out_features, bias)
+        self.bfp_args = unpack_bfp_args(kwargs)
         self.num_format = self.bfp_args['num_format']
         self.linear_op = _get_bfp_op(F.linear, 'linear', self.bfp_args)
 
     def forward(self, input):
-        if self.num_format == 'fp32':
+        if self.num_format == 'fp32' or self.num_format == 'posit':
             # print('going')
-            self.weight = torch.nn.Parameter(torch.where(self.weight < 0, torch.tensor(-1).float(), torch.tensor(0).float()))
+            # self.weight = torch.nn.Parameter(torch.where(self.weight < 0, torch.tensor(-1).float(), torch.tensor(0).float()))
             return F.linear(input, self.weight, self.bias)
         elif self.num_format == 'bfloat16':
             weight = self.weight.to(torch.bfloat16)
@@ -114,3 +137,4 @@ class PositLinear(torch.nn.Linear):
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
+
